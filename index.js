@@ -1,4 +1,4 @@
-const { JsonRpcProvider, Wallet, parseEther, ethers } = require('ethers');
+const { JsonRpcProvider, Wallet, parseEther } = require('ethers');
 require('dotenv').config();
 
 const DEFAULT_RPC_URL = `http://localhost:8545`;
@@ -52,7 +52,6 @@ const sendTxs = async (providerUrl, transactions) => {
         txPromises.push(signingPromise);
     }
     await Promise.all(txPromises);
-    // @TODO sendSignedTx
 }
 
 const benchmarkTPS = async (privateKey, providerUrl) => {
