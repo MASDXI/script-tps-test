@@ -3,8 +3,8 @@ require('dotenv').config();
 
 const DEFAULT_RPC_URL = `http://localhost:8545`;
 const DEFAULT_PRIVATE_KEY = `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`;
-const DEFAULT_TRANSACTIONS = 250;
-const DEFAULT_BLOCKTIME = 15;
+const DEFAULT_TRANSACTIONS = 1428;
+const DEFAULT_BLOCKTIME = 12;
 
 let RPC_URL = process.env.RPC_URL ? process.env.RPC_URL : DEFAULT_RPC_URL;
 let PRIVATE_KEY = process.env.PRIVATE_KEY ? process.env.PRIVATE_KEY : DEFAULT_PRIVATE_KEY;
@@ -24,7 +24,7 @@ const prepareTransactionPromise = async (privateKey, providerUrl) => {
     for (let i = 0; i < TRANSACTIONS; i++) {
         let tx = {
             chainId: chainId,
-            to: "0x6f7090364d4aE2C1819693D6382b74C7D004b4B8",
+            to: "0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF",
             value: parseEther("1"),
             nonce: nonce,
             gasLimit: 21000,
