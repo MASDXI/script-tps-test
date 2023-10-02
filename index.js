@@ -3,7 +3,7 @@ require('dotenv').config();
 
 const DEFAULT_RPC_URL = `http://localhost:8545`;
 const DEFAULT_PRIVATE_KEY = `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`;
-const DEFAULT_TRANSACTIONS = 1428;
+const DEFAULT_TRANSACTIONS = 14280;
 const DEFAULT_BLOCKTIME = 12;
 
 let RPC_URL = process.env.RPC_URL ? process.env.RPC_URL : DEFAULT_RPC_URL;
@@ -59,11 +59,14 @@ const benchmarkTPS = async (privateKey, providerUrl) => {
     const transactions = await prepareTransactionPromise(privateKey, providerUrl);
     await sendTxs(providerUrl, transactions)
     const endTime = Date.now();
-    const durationInSeconds = (((endTime - startTime) / 1000) / (BLOCK_TIME * 1000));
-    const tps = TRANSACTIONS / durationInSeconds;
+    const durationInSeconds = (endTime - startTime) / 1000;
+    const txs = TRANSACTIONS / (durationInSeconds);
+    const tps = TRANSACTIONS / BLOCK_TIME;
     console.log(`Benchmark complete.`);
     console.log(`Transaction amount: ${TRANSACTIONS}`)
-    console.log(`Transactions per second: ${tps.toFixed(3)} sec`);
+    console.log(`Boardcast Transactions per second: ${txs.toFixed(3)} tx/s`);
+    console.log(`Transactions per second: ${tps.toFixed(3)} tx/s`);
+    // @TODO get tx lenght in block to ensure tx are append in block?
 }
 
 // Start benchmarking
