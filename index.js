@@ -1,7 +1,8 @@
-const { WebSocketProvider, Wallet, parseEther, ethers } = require('ethers');
+const { JsonRpcProvider, Wallet, parseEther, ethers } = require('ethers');
+const axios = require('axios');
 require('dotenv').config();
 
-const DEFAULT_RPC_URL = `ws://localhost:8546`;
+const DEFAULT_RPC_URL = `http://localhost:8545`;
 const DEFAULT_PRIVATE_KEY = `0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80`;
 const DEFAULT_TRANSACTIONS = 1428;
 const DEFAULT_BLOCKTIME = 12;
@@ -12,12 +13,11 @@ let TRANSACTIONS = process.env.TRANSACTIONS ? process.env.TRANSACTIONS : DEFAULT
 let BLOCK_TIME = process.env.BLOCK_TIME ? process.env.BLOCK_TIME: DEFAULT_BLOCKTIME;
 
 const prepareTransactionPromise = async (privateKey, providerUrl) => {
-    const provider = new WebSocketProvider(providerUrl)
-    const wallet = new Wallet(privateKey, provider);
-    const gasPrice = (await provider.getFeeData()).gasPrice
-    const chainId = (await provider.getNetwork()).chainId 
-    let nonce = await provider.getTransactionCount(wallet.getAddress())
-    provider.destroy();
+    const provider = new JsonRpcProvider(providerUrl);
+    const wallet = new Wallet(privateKey, providerUrl);
+    const gasPrice = (await provider.getFeeData()).gasPrice;
+    const chainId = (await provider.getNetwork()).chainId;
+    let nonce = await provider.getTransactionCount(wallet.getAddress());
 
     const signingPromises = [];
     const startTime = Date.now();
@@ -45,42 +45,49 @@ const prepareTransactionPromise = async (privateKey, providerUrl) => {
     return signedTransactions;
 };
 
-const sendTxs = async (providerUrl, transactions) => {
-    const provider = new WebSocketProvider(providerUrl);
-    const batchSize = 250; // Please carefully adjust the batch size as needed
-    const numBatches = Math.ceil(transactions.length / batchSize);
-    const startTime = Date.now();
-    const sendBatch = async (batch) => {
-        const txPromises = batch.map((tx) => provider.broadcastTransaction(tx));
-        await Promise.all(txPromises);
+const sendBatch = async (signedTx) => {
+    const axiosConfig = {
+      method: 'post',
+      url: RPC_URL,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      data: {
+        jsonrpc: '2.0',
+        method: 'eth_sendRawTransaction',
+        params: [signedTx], // Replace with your signed transaction
+        id: 1,
+      },
     };
+    axios(axiosConfig);
+};
 
+const sendTxs = async (transactions) => {  
+    const startTime = Date.now();
     const batchPromises = [];
-    for (let i = 0; i < numBatches; i++) {
-        const startIdx = i * batchSize;
-        const endIdx = Math.min(startIdx + batchSize, transactions.length);
-        const batch = transactions.slice(startIdx, endIdx);
-
-        // Push the promise for each batch into the array
-        batchPromises.push(sendBatch(batch));
+  
+    for (let i = 0; i < transactions.length; i++) {
+      // Ensure you set http max connect.
+      batchPromises.push(sendBatch(transactions[i]));
     }
-    
-    // Call sendBatches to send transactions in batches
+  
+    // Wait for all batchPromises to resolve
     await Promise.all(batchPromises);
-    provider.destroy();
+  
     const endTime = Date.now();
     const durationInSeconds = (endTime - startTime) / 1000;
-    const txs = TRANSACTIONS / (durationInSeconds);
+    const txs = TRANSACTIONS / durationInSeconds;
     const tps = TRANSACTIONS / BLOCK_TIME;
     console.log(`Benchmark complete.`);
-    console.log(`Transaction amount: ${TRANSACTIONS}`)
-    console.log(`Boardcast Transactions per second: ${txs.toFixed(3)} tx/s`);
-    console.log(`Transactions per second: ${tps.toFixed(3)} tx/s`);
-}
+    console.log(`Transaction amount: ${TRANSACTIONS}`);
+    console.log(`Target Transactions per second: ${tps.toFixed(3)} tx/s`);
+    console.log(`Duration: ${durationInSeconds} seconds`)
+    console.log(`Broadcast Transactions per second: ${txs.toFixed(3)} tx/s`);
+};
 
 const benchmarkTPS = async (privateKey, providerUrl) => {
     const transactions = await prepareTransactionPromise(privateKey, providerUrl);
-    await sendTxs(providerUrl, transactions)
+    await sendTxs(transactions)
     // @TODO get tx lenght in block to ensure tx are append in block?
 }
 
