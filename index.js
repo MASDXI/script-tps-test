@@ -52,27 +52,29 @@ const sendBatch = async (signedTx) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      data: {
-        jsonrpc: '2.0',
-        method: 'eth_sendRawTransaction',
-        params: [signedTx], // Replace with your signed transaction
-        id: 1,
-      },
+      data: signedTx,
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
     };
     axios(axiosConfig);
 };
 
 const sendTxs = async (transactions) => {  
     const startTime = Date.now();
-    const batchPromises = [];
-  
+    const datas = [];
     for (let i = 0; i < transactions.length; i++) {
       // Ensure you set http max connect.
-      batchPromises.push(sendBatch(transactions[i]));
+      datas.push({
+          jsonrpc: '2.0',
+          method: 'eth_sendRawTransaction',
+          params: [transactions[i]], // Replace with your signed transaction
+          id: 1,
+        })
     }
+
+    await sendBatch(datas);
   
     // Wait for all batchPromises to resolve
-    await Promise.all(batchPromises);
   
     const endTime = Date.now();
     const durationInSeconds = (endTime - startTime) / 1000;
